@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { safeGet, safeSet } from '../utils/storage'
 import { Client } from '../types/client'
 import { Order, ORDER_STATUS_META } from '../types/order'
+import { ensureSampleData } from '../data/sampleData'
 
 export default function Clients() {
+  ensureSampleData()
   const [clients, setClients] = useState<Client[]>(safeGet('bp360_clients', [] as Client[]));
   const [open, setOpen] = useState<Client | null>(null);
   const [form, setForm] = useState<Client | null>(null);

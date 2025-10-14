@@ -1,6 +1,9 @@
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import { useEffect, useMemo, useState, useRef, ChangeEvent, FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { safeGet, safeSet } from '../utils/storage'
@@ -8,6 +11,7 @@ import { Client } from '../types/client'
 import { Order, ORDER_STATUS_META } from '../types/order'
 import { Site } from '../types/site'
 import NewOrderModal, { NewOrderPayload } from '../components/NewOrderModal'
+import { ensureSampleData, clearSampleDataSeedFlag } from '../data/sampleData'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -20,6 +24,18 @@ import {
 import { Line } from 'react-chartjs-2'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend)
+
+const DefaultMarker = L.icon({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  tooltipAnchor: [16, -28],
+  shadowSize: [41, 41],
+})
+L.Marker.prototype.options.icon = DefaultMarker
 
 type Hive = {
   id: string; colmena: string; contratoId: string; lat: number; lng: number;
@@ -42,6 +58,7 @@ function simulate(prev: Telemetry): Telemetry {
 }
 
 export default function BeeTrack(){
+  ensureSampleData()
   const [hives, setHives] = useState<Hive[]>([])
   const [tele, setTele] = useState<Record<string, Telemetry>>({})
   const [alerts, setAlerts] = useState<{timestamp:number; hiveId:string; tipo:string; valor:number}[]>(safeGet('bp360_alerts', []))
@@ -50,7 +67,7 @@ export default function BeeTrack(){
   const [contract, setContract] = useState<string>('CTR-CP-2025')
   const [contracts, setContracts] = useState<{id:string; cliente:string}[]>([])
   
-  const [sites, setSites] = useState<Site[]>([])
+  const [sites, setSites] = useState<Site[]>(safeGet('bp360_client_sites', [] as Site[]))
   const [openSite, setOpenSite] = useState<Site|null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [clients, setClients] = useState<Client[]>(safeGet('bp360_clients', [] as Client[]))
@@ -76,6 +93,23 @@ export default function BeeTrack(){
 
   function setLocalHives(v: LocalHive[]) {
     safeSet(HIVES_LOCAL_KEY, v)
+  }
+
+  const handleResetData = () => {
+    const keys = [
+      'bp360_clients',
+      'bp360_orders',
+      'bp360_client_sites',
+      'bp360_alerts',
+      'bp360_hives_local',
+      'bp360_site_layouts',
+      'bp360_seed_version'
+    ]
+    keys.forEach(key => localStorage.removeItem(key))
+    sessionStorage.removeItem('bp360_new_order_client')
+    sessionStorage.removeItem('bp360_open_site')
+    clearSampleDataSeedFlag()
+    window.location.reload()
   }
 
   const handleCreateOrder = ({ client, quantity, durationMonths, position, notes }: NewOrderPayload) => {
@@ -282,11 +316,14 @@ export default function BeeTrack(){
       <div className="md:col-span-2 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold">BeeTrack 360 (simulado)</h1>
-          <select className="border rounded-lg px-3 py-2" value={contract} onChange={e=>setContract(e.target.value)}>
-            {contracts.map(c => (
-              <option key={c.id} value={c.id}>{c.id} · {c.cliente}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select className="border rounded-lg px-3 py-2" value={contract} onChange={e=>setContract(e.target.value)}>
+              {contracts.map(c => (
+                <option key={c.id} value={c.id}>{c.id} · {c.cliente}</option>
+              ))}
+            </select>
+            <button className="btn btn-outline btn-sm" onClick={handleResetData}>Reiniciar datos</button>
+          </div>
         </div>
   <div className={`card overflow-hidden map-shell ${openSite ? 'pointer-events-none' : ''}`}>
           <div className="h-[360px] relative z-0">
