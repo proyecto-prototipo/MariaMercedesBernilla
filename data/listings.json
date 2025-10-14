@@ -1,0 +1,32 @@
+{
+  "listings": [
+    {
+      "id": "L-0001",
+      "apicultorId": "A-100",
+      "titulo": "Colmenas fuertes para arándanos",
+      "cultivos": ["arándano"],
+      "region": "La Libertad",
+      "precioPorColmena": 150,
+      "ventanaServicio": {"desde": "2025-07-01", "hasta": "2025-09-30"},
+      "fuerza": "fuerte",
+      "estadoSanitario": "sano",
+      "rating": 4.6,
+  "fotos": ["assets/l-0001-1.jpg"],
+      "capacidadColmenas": 300
+    },
+    {
+      "id": "L-0002",
+      "apicultorId": "A-101",
+      "titulo": "Colmenas estándar para paltos",
+      "cultivos": ["palta"],
+      "region": "Lima",
+      "precioPorColmena": 120,
+      "ventanaServicio": {"desde": "2025-04-15", "hasta": "2025-07-15"},
+      "fuerza": "estándar",
+      "estadoSanitario": "sano",
+      "rating": 4.2,
+  "fotos": ["assets/l-0002-1.jpg"],
+      "capacidadColmenas": 180
+    }
+  ]
+}

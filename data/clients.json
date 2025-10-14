@@ -1,0 +1,7 @@
+{
+  "clients": [
+    { "id": "C-001", "nombre": "Agrícola Cerro Prieto", "region": "La Libertad", "cultivos": ["arándano"] },
+    { "id": "C-002", "nombre": "Agro Palta SAC", "region": "Lima", "cultivos": ["palta"] },
+    { "id": "C-003", "nombre": "Vides del Sur", "region": "Ica", "cultivos": ["uvas"] }
+  ]
+}

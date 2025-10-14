@@ -1,0 +1,18 @@
+{
+  "providers": [
+    {
+      "id": "A-100",
+      "nombre": "Apis Andinas",
+      "zonas": ["La Libertad", "Ancash"],
+      "certificaciones": ["BPA 2024", "Sanidad Apícola"],
+      "rating": 4.6
+    },
+    {
+      "id": "A-101",
+      "nombre": "Miel del Valle",
+      "zonas": ["Lima", "Ica"],
+      "certificaciones": ["Manipulación Segura 2025"],
+      "rating": 4.2
+    }
+  ]
+}

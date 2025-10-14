@@ -1,0 +1,7 @@
+{
+  "reviews": [
+    {"id":"R-01","apicultorId":"A-100","autor":"Agrícola Norte","rating":5,"comentario":"Excelente vigor.","fecha":"2025-08-12"},
+    {"id":"R-02","apicultorId":"A-100","autor":"Campos Andinos","rating":4,"comentario":"Cumplidos y buen trato.","fecha":"2025-07-01"},
+    {"id":"R-03","apicultorId":"A-101","autor":"Agro Palta SAC","rating":4,"comentario":"Servicio correcto.","fecha":"2025-05-20"}
+  ]
+}

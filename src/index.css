@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body { font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+
+/* Focus visible */
+:focus-visible { outline: 2px solid theme('colors.bee-yellow'); outline-offset: 2px; }
+
+/* Card utility */
+.card { @apply bg-white rounded-2xl shadow-soft border border-stone-200; }
+.btn { @apply inline-flex items-center justify-center rounded-lg px-4 py-2 font-medium transition-colors; }
+.btn-primary { @apply bg-bee-yellow text-bee-dark hover:bg-yellow-400; }
+.btn-outline { @apply border border-stone-300 hover:bg-stone-100; }
+
+@keyframes fadeIn {
+	from { opacity: 0; transform: translateY(4px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in { animation: fadeIn 0.4s ease both; }
+
+@keyframes slideUpSlow {
+	from { opacity: 0; transform: translateY(20px); }
+	60% { opacity: 1; }
+	to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-up-slow { animation: slideUpSlow 0.9s ease-out both; }
+
+@keyframes toastEnter {
+	from { opacity: 0; transform: translate(-50%, 24px); }
+	to { opacity: 1; transform: translate(-50%, 0); }
+}
+@keyframes toastExit {
+	from { opacity: 1; transform: translate(-50%, 0); }
+	to { opacity: 0; transform: translate(-50%, 24px); }
+}
+.toast-enter { animation: toastEnter 0.6s ease-out forwards; }
+.toast-exit { animation: toastExit 0.65s ease-in forwards; }
+
+/* Toast success handled via inline classes in component */
+
+.toast { position: fixed; right: 1rem; bottom: 1rem; z-index: 60; }
+
+/* Prevent Leaflet from overlaying header or modals */
+.map-shell { position: relative; z-index: 0; }
+.map-shell .leaflet-container { position: relative; z-index: 0 !important; }
+.map-shell .leaflet-pane { z-index: 0 !important; }
+.map-shell .leaflet-control-container { z-index: 0 !important; }
+.modal-overlay { position: fixed; inset: 0; z-index: 9999; }

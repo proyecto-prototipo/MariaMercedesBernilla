@@ -1,0 +1,7 @@
+{
+  "products": [
+    { "id": "P-AR-01", "cultivo": "arándano", "unidad": "colmena/ha", "recomendado": 8 },
+    { "id": "P-PA-01", "cultivo": "palta", "unidad": "colmena/ha", "recomendado": 6 },
+    { "id": "P-UV-01", "cultivo": "uvas", "unidad": "colmena/ha", "recomendado": 5 }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "contracts": [
+    {
+      "id":"CTR-CP-2025",
+      "cliente":"Agrícola Cerro Prieto",
+      "ubicacion":"Trujillo, La Libertad",
+      "colmenas":235,
+      "precioUnitario":150,
+      "montoTotal":35250,
+      "fecha":"2025-03-10"
+    },
+    {
+      "id":"CTR-PA-2025",
+      "cliente":"Agro Palta SAC",
+      "ubicacion":"Cañete, Lima",
+      "colmenas":120,
+      "precioUnitario":130,
+      "montoTotal":15600,
+      "fecha":"2025-05-22"
+    },
+    {
+      "id":"CTR-UV-2025",
+      "cliente":"Vides del Sur",
+      "ubicacion":"Ica, Ica",
+      "colmenas":90,
+      "precioUnitario":140,
+      "montoTotal":12600,
+      "fecha":"2025-07-05"
+    }
+  ]
+}
