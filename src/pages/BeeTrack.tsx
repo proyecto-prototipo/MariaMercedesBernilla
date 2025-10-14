@@ -220,25 +220,7 @@ export default function BeeTrack(){
       const opts = json.contracts.map((c: any) => ({ id: c.id, cliente: c.cliente }))
       setContracts(opts)
     })
-    // Use bundler-aware URL so it works in preview/prod builds
-    const base = import.meta.env.BASE_URL || '/'
-    fetch(`${base}data/productSites.json`)
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(json => {
-        const locals = safeGet('bp360_client_sites', [] as Site[]).filter(s => !s.pendingSite)
-        setSites([...(json.sites as Site[]), ...locals])
-      })
-      .catch(() => {
-        // fallback for dev environments without public copy
-        const sitesUrl = new URL('../../data/productSites.json', import.meta.url)
-        fetch(sitesUrl).then(r=>r.json()).then(json=>{
-          const locals = safeGet('bp360_client_sites', [] as Site[]).filter(s => !s.pendingSite)
-          setSites([...(json.sites as Site[]), ...locals])
-        }).catch(()=>{
-          const locals = safeGet('bp360_client_sites', [] as Site[]).filter(s => !s.pendingSite)
-          setSites(locals)
-        })
-      })
+    setSites(safeGet('bp360_client_sites', [] as Site[]).filter(s => !s.pendingSite))
   },[])
 
   // If a page asked to open a site (e.g., from Clients order flow), auto-open its mini-mapa
