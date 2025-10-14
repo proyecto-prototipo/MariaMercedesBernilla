@@ -1,9 +1,13 @@
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef, ChangeEvent, FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { safeGet, safeSet } from '../utils/storage'
+import { Client } from '../types/client'
+import { Order, ORDER_STATUS_META } from '../types/order'
+import { Site } from '../types/site'
+import NewOrderModal, { NewOrderPayload } from '../components/NewOrderModal'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -16,8 +20,6 @@ import {
 import { Line } from 'react-chartjs-2'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend)
-
-type Site = { id:string; name:string; lat:number; lng:number; assignedAt?: string; contract?: { start: string; end: string }; pendingSite?: boolean; lockExtras?: boolean; hives:{id:string; ingreso:string}[] }
 
 type Hive = {
   id: string; colmena: string; contratoId: string; lat: number; lng: number;
@@ -51,11 +53,19 @@ export default function BeeTrack(){
   const [sites, setSites] = useState<Site[]>([])
   const [openSite, setOpenSite] = useState<Site|null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [newClient, setNewClient] = useState<{name:string; hives:number; contractMonths:number}>({ name: '', hives: 4, contractMonths: 6 })
+  const [clients, setClients] = useState<Client[]>(safeGet('bp360_clients', [] as Client[]))
+  const [orders, setOrders] = useState<Order[]>(safeGet('bp360_orders', [] as Order[]))
   const [emailToast, setEmailToast] = useState<string>('')
   const [emailPhase, setEmailPhase] = useState<'hidden'|'enter'|'exit'>('hidden')
   const [emailStage, setEmailStage] = useState<'sending'|'sent'>('sending')
   const [newClientModal, setNewClientModal] = useState(false)
+  const [newOrderModal, setNewOrderModal] = useState(false)
+  const [orderDetails, setOrderDetails] = useState<Order|null>(null)
+  const [orderDraftClientId, setOrderDraftClientId] = useState<string|null>(null)
+
+  const recentOrders = useMemo(() => (
+    [...orders].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  ), [orders])
 
   const HIVES_LOCAL_KEY = 'bp360_hives_local'
   type LocalHive = Pick<Hive, 'id'|'colmena'|'contratoId'|'lat'|'lng'|'hasDevice'> & { seed?: Hive['seed']; umbrales?: Hive['umbrales'] }
@@ -66,6 +76,57 @@ export default function BeeTrack(){
 
   function setLocalHives(v: LocalHive[]) {
     safeSet(HIVES_LOCAL_KEY, v)
+  }
+
+  const handleCreateOrder = ({ client, quantity, durationMonths, position, notes }: NewOrderPayload) => {
+    const orderId = `ORD-${Date.now().toString(36).toUpperCase()}`
+    const siteId = `SITE-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
+    const clientName = `${client.firstName} ${client.lastName}`.trim() || client.firstName || client.lastName || client.id
+    const now = new Date()
+    const startIso = now.toISOString().slice(0, 10)
+    const end = new Date(now)
+    end.setMonth(end.getMonth() + durationMonths)
+    const endIso = end.toISOString().slice(0, 10)
+
+    const hiveBase = Math.floor(Math.random()*200) + 100
+    const newSite: Site = {
+      id: siteId,
+      name: clientName,
+      lat: position.lat,
+      lng: position.lng,
+      pendingSite: true,
+      lockExtras: true,
+      contract: { start: startIso, end: endIso },
+      hives: Array.from({ length: quantity }, (_, idx) => ({
+        id: `C-${String(hiveBase + idx).padStart(3, '0')}`,
+        ingreso: startIso
+      }))
+    }
+
+    setSites(prev => [...prev, newSite])
+    setSelectedIds(prev => [...prev, siteId])
+
+    const order: Order = {
+      id: orderId,
+      clientId: client.id,
+      clientName,
+      siteId,
+      siteName: newSite.name,
+      quantity,
+      contractMonths: durationMonths,
+      status: 'pending-location',
+      createdAt: now.toISOString(),
+      requestedLat: position.lat,
+      requestedLng: position.lng,
+      notes: notes?.trim() ? notes : undefined
+    }
+
+    setOrders(prev => [order, ...prev])
+    setOpenSite(newSite)
+    setNewOrderModal(false)
+    setOrderDraftClientId(null)
+    setToast('Orden creada. Confirma la ubicación en el mini mapa.')
+    window.setTimeout(()=>setToast(''), 2600)
   }
 
   function assignIoT(hiveId: string) {
@@ -162,6 +223,14 @@ export default function BeeTrack(){
     if (cleaned.length !== locals.length) safeSet('bp360_client_sites', cleaned)
   }, [])
 
+  useEffect(() => {
+    const pendingClient = sessionStorage.getItem('bp360_new_order_client')
+    if (!pendingClient) return
+    setOrderDraftClientId(pendingClient)
+    setNewOrderModal(true)
+    sessionStorage.removeItem('bp360_new_order_client')
+  }, [clients])
+
   useEffect(()=>{
     const id = setInterval(()=>{
       setTele(prev => {
@@ -202,6 +271,7 @@ export default function BeeTrack(){
 
   // persist alerts during session
   useEffect(()=>{ safeSet('bp360_alerts', alerts) }, [alerts])
+  useEffect(()=>{ safeSet('bp360_orders', orders) }, [orders])
 
   // Force center to requested coordinates if available, else fallback to first hive
   const requestedCenter = { lat: -12.5405073, lng: -76.7348462 }
@@ -257,6 +327,35 @@ export default function BeeTrack(){
         <ClusteredSites sites={(selectedIds && selectedIds.length)? sites.filter(s=>selectedIds.includes(s.id) && !s.pendingSite) : sites.filter(s=>!s.pendingSite)} onOpen={(s)=>setOpenSite(s)} />
             </MapContainer>
           </div>
+        </div>
+        <div className="card p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold">Órdenes recientes</h2>
+            <button className="btn btn-primary btn-sm" onClick={() => { setOrderDraftClientId(null); setNewOrderModal(true) }}>Nueva orden</button>
+          </div>
+          {recentOrders.length ? (
+            <ul className="space-y-3 text-sm">
+              {recentOrders.slice(0, 4).map(order => {
+                const status = ORDER_STATUS_META[order.status]
+                const confirmed = order.status === 'active' && order.locationConfirmedAt
+                return (
+                  <li key={order.id} className="flex flex-col gap-1 border-b pb-3 last:border-b-0 last:pb-0">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-medium truncate" title={order.siteName}>{order.siteName}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${status.className}`}>{status.label}</span>
+                      </div>
+                      <button className="btn btn-outline btn-xs" onClick={()=>setOrderDetails(order)}>Ver más detalles</button>
+                    </div>
+                    <div className="text-xs text-stone-600">{order.clientName} · {order.quantity} panales · {order.contractMonths} meses</div>
+                    <div className="text-xs text-stone-500">Creada {formatRelative(order.createdAt)}{confirmed ? ` · Ubicación confirmada ${formatRelative(order.locationConfirmedAt!)}` : ''}</div>
+                  </li>
+                )
+              })}
+            </ul>
+          ) : (
+            <p className="text-sm text-stone-500">Aún no hay órdenes. Registra la primera con el botón “Nueva orden”.</p>
+          )}
         </div>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="card p-4">
@@ -372,7 +471,25 @@ export default function BeeTrack(){
         <NewClientCard onCreate={() => setNewClientModal(true)} />
       </aside>
       {newClientModal && (
-        <NewClientModal onClose={()=>setNewClientModal(false)} />
+        <NewClientModal
+          onClose={()=>setNewClientModal(false)}
+          onSaved={(client)=>{
+            setClients(prev => {
+              if (prev.some(c => c.id === client.id)) return prev
+              return [...prev, client]
+            })
+            setOrderDraftClientId(client.id)
+            setNewOrderModal(true)
+          }}
+        />
+      )}
+      {newOrderModal && (
+        <NewOrderModal
+          clients={clients}
+          defaultClientId={orderDraftClientId}
+          onClose={()=>{ setNewOrderModal(false); setOrderDraftClientId(null) }}
+          onSubmit={handleCreateOrder}
+        />
       )}
       {emailPhase !== 'hidden' && (
         <div className={`fixed left-1/2 -translate-x-1/2 bottom-6 z-[3000] bg-white/90 backdrop-blur border border-stone-200 rounded-2xl px-5 py-3 shadow-xl ${emailPhase==='enter'?'toast-enter':'toast-exit'}`}>
@@ -397,12 +514,28 @@ export default function BeeTrack(){
       {openSite && (
         <MiniMapModal site={openSite} onClose={()=>setOpenSite(null)} onConfirmSite={(id, lat, lng)=>{
           // Persist only now upon confirmation
+          const confirmedAt = new Date().toISOString()
           const confirmed = { ...openSite, lat, lng, pendingSite: false }
-          setSites(prev => [...prev, confirmed])
+          setSites(prev => prev.map(s => s.id === id ? confirmed : s))
           const locals = safeGet('bp360_client_sites', [] as Site[])
-          safeSet('bp360_client_sites', [...locals, confirmed])
-          setSelectedIds(prev => [...prev, id])
-          // Keep modal open but now with confirmed site so user can manage panales
+          const without = locals.filter(s => s.id !== id)
+          safeSet('bp360_client_sites', [...without, confirmed])
+          setSelectedIds(prev => prev.includes(id) ? prev : [...prev, id])
+          setOrders(prev => prev.map(order => order.siteId === id ? ({
+            ...order,
+            status: 'active',
+            locationConfirmedAt: confirmedAt,
+            finalLat: lat,
+            finalLng: lng
+          }) : order))
+          setOrderDetails(prev => prev && prev.siteId === id ? ({
+            ...prev,
+            status: 'active',
+            locationConfirmedAt: confirmedAt,
+            finalLat: lat,
+            finalLng: lng
+          }) : prev)
+          // Keep modal open but now with confirmed site so user can gestionar panales
           setOpenSite(confirmed)
         }} />
       )}
@@ -558,6 +691,19 @@ function daysSince(iso: string){
   return Math.floor(diff / (1000*60*60*24))
 }
 
+function formatRelative(iso: string){
+  const dt = new Date(iso)
+  if (Number.isNaN(dt.getTime())) return iso
+  const diffMs = dt.getTime() - Date.now()
+  const absMinutes = Math.round(Math.abs(diffMs) / 60000)
+  const rtf = new Intl.RelativeTimeFormat('es', { numeric: 'auto' })
+  if (absMinutes < 60) return rtf.format(Math.round(diffMs / 60000), 'minute')
+  const absHours = Math.round(Math.abs(diffMs) / (60000 * 60))
+  if (absHours < 24) return rtf.format(Math.round(diffMs / (60000 * 60)), 'hour')
+  const days = Math.round(diffMs / (60000 * 60 * 24))
+  return rtf.format(days, 'day')
+}
+
 function SitePopup({ site, onOpenMini }: { site: { id:string; name:string; lat:number; lng:number; assignedAt?:string; hives:{id:string; ingreso:string}[] }; onOpenMini: (e?: any) => void }){
   return (
     <div className="text-sm min-w-[260px]" onClick={(e)=>e.stopPropagation()}>
@@ -641,11 +787,11 @@ function MiniMapModal({ site, onClose, onConfirmSite }: { site: Site; onClose: (
     }
   }, [mapRef.current])
   // Register new hive
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFormChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setForm(f => ({ ...f, [name]: name === 'name' ? value : parseFloat(value) }))
   }
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = (e: FormEvent) => {
     e.preventDefault()
     if (form.lat == null || form.lng == null) return
     const newId = form.name.trim() ? form.name.trim() : ('C-' + (Math.floor(Math.random()*900)+100))
@@ -810,15 +956,14 @@ function NewClientCard({ onCreate }: { onCreate: () => void }){
   )
 }
 
-// PClient type defined once below
-
-function NewClientModal({ onClose }: { onClose: () => void }){
-  const [form, setForm] = useState<PClient>({ id: 'CL-'+Math.random().toString(36).slice(2,8).toUpperCase(), firstName: '', lastName: '' })
+function NewClientModal({ onClose, onSaved }: { onClose: () => void; onSaved: (client: Client) => void }){
+  const [form, setForm] = useState<Client>({ id: 'CL-'+Math.random().toString(36).slice(2,8).toUpperCase(), firstName: '', lastName: '' })
   const canSave = !!form.firstName.trim() && !!form.lastName.trim() && (!!form.phone?.trim() || !!form.email?.trim())
   const save = () => {
     if (!canSave) return
-    const list = safeGet('bp360_clients', [] as PClient[])
+    const list = safeGet('bp360_clients', [] as Client[])
     safeSet('bp360_clients', [...list, form])
+    onSaved(form)
     onClose()
   }
   return createPortal(
@@ -877,19 +1022,6 @@ function NewClientModal({ onClose }: { onClose: () => void }){
     </div>,
     document.body
   )
-}
-
-type PClient = {
-  id: string
-  firstName: string
-  lastName: string
-  dni?: string
-  phone?: string
-  email?: string
-  country?: string
-  birthplace?: string
-  address?: string
-  notes?: string
 }
 
 

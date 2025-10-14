@@ -1,16 +1,3 @@
 {
-  "hives": [
-    {"id":"H-01","colmena":"C-001","contratoId":"CTR-CP-2025","lat":-8.055,"lng":-79.05,
-     "umbrales":{"tempMax":38,"humMin":30},
-     "seed":{"temp":34,"hum":50,"act":70,"bat":92}},
-    {"id":"H-02","colmena":"C-002","contratoId":"CTR-CP-2025","lat":-8.057,"lng":-79.052,
-     "umbrales":{"tempMax":38,"humMin":30},
-     "seed":{"temp":33.5,"hum":52,"act":65,"bat":89}},
-    {"id":"H-03","colmena":"C-003","contratoId":"CTR-CP-2025","lat":-8.058,"lng":-79.047,
-     "umbrales":{"tempMax":38,"humMin":30},
-     "seed":{"temp":35.1,"hum":48,"act":72,"bat":88}},
-    {"id":"H-04","colmena":"C-004","contratoId":"CTR-CP-2025","lat":-8.053,"lng":-79.049,
-     "umbrales":{"tempMax":38,"humMin":30},
-     "seed":{"temp":32.9,"hum":55,"act":66,"bat":91}}
-  ]
+  "hives": []
 }
